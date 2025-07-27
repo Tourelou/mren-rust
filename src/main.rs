@@ -7,7 +7,7 @@ use std::fs;
 use std::path::Path;
 
 const PRG_NAME: &str = "mren";
-const VERSION: &str = "2025-07-15";
+const VERSION: &str = "2025-07-17";
 
 fn main() {
 	let opts = Options::parse_args();
@@ -69,7 +69,8 @@ Arguments en position:
 	// Détermine les répertoires à explorer
 	let dirs = if opts.directories.is_empty() {
 		vec![".".to_string()]
-	} else {
+	}
+	else {
 		opts.directories.clone()
 	};
 
@@ -80,17 +81,10 @@ Arguments en position:
 	}
 }
 
-fn visit_dir(
-	path: &Path,
-	pattern: &str,
-	replacement: &str,
-	opts: &Options,
-	include_self: bool,
-) {
+fn visit_dir(path: &Path, pattern: &str, replacement: &str, opts: &Options, include_self: bool) {
 	if include_self {
 		handle_entry(path, pattern, replacement, opts);
 	}
-
 	if let Ok(entries) = fs::read_dir(path) {
 		for entry in entries.filter_map(Result::ok) {
 			let p = entry.path();
@@ -133,11 +127,12 @@ fn handle_entry(path: &Path, pattern: &str, replacement: &str, opts: &Options) {
 
 	if opts.simulate {
 		println!("{} \x1b[92m\x1b[40m Deviendrait \x1b[0m {}", path.display(), new_path.display());
-	} else {
+	}
+	else {
 		match fs::rename(path, &new_path) {
 			Ok(_) => {
 				if opts.verbose {
-					println!("{} \x1b[92m\x1b[40m est devenu \x1b[0m {}", path.display(), new_path.display());
+					println!("{} \x1b[91m\x1b[40m est devenu \x1b[0m {}", path.display(), new_path.display());
 				}
 			}
 			Err(e) => {

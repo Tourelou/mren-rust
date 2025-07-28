@@ -1,53 +1,31 @@
 // main.rs
-
 mod parse;
+mod action;
+
+use std::env;
+use std::process;
+use std::path::PathBuf;
+use std::path::Path;
+// use std::fs;
+use regex::Regex;
 
 use parse::Options;
-use std::fs;
-use std::path::Path;
+use action::scan_dir;
+use action::renomme;
 
 const PRG_NAME: &str = "mren";
-const VERSION: &str = "2025-07-17";
+const VERSION: &str = "2025-07-26";
 
 fn main() {
-	let opts = Options::parse_args();
+	let mut opts = Options::parse_args(PRG_NAME, VERSION);
 
-	// Affiche l'aide
-	if opts.help == 1 {	// option -h
-		println!("usage: mren [-f|-d] [-riInv] <motif regex> <remplacement> [dirname ...]");
-		return;
+	if opts.files_only && opts.dirs_only {
+		eprintln!("-f et -d sont mutuellement exclusif. C'est un ou c'est l'autre.");
+		std::process::exit(1);
 	}
+	if opts.simulate { opts.verbose = true };
 
-	if opts.help == 2 {	// option --help
-		println!("usage: mren [-f|-d] [-riInv] <motif regex> <remplacement> [dirname ...]\n
-Renommage multiple selon un certain motif.\n
-Arguments en position:
-  <motif regex>     Motif à chercher: Mettre entre guillements '...'
-  <remplacement>    Chaîne de remplacement. Doit obligatoirement suivre le motif.
-  [dirname ...]     Répertoire(s) de recherche.
-\nOptions:
-  -f                  N'agit que sur les fichiers.
-  -d                  N'agit que sur les répertoires.
-  -r,   --recursive   Procède de façon récursive sur les répertoires.
-  -i,   --include     En mode récusif, inclu le dossier en ligne de commande.
-  -I,   --ignoreCase  Fait une recherche en ignorant la case.
-  -n,   --simulate    Simule les opérations demandées - Fichiers affectés en VERT.
-  -v,   --verbose     Donne des détails sur le(s) fichier(s) traité(s) - Fichiers affectés en ROUGE.
-  -ver, --version     Renommage multiple à partir d'un motif.
-  -h,   --help        Montre ce message d'aide et termine.");
-		return;
-	}
-
-	// Affiche la version
-	if opts.version == 1 {	// option -ver
-		println!("{PRG_NAME}: version {VERSION}");
-		return;
-	}
-
-	if opts.version == 2 {	// option --version
-		println!("{PRG_NAME}: Renommage multiple selon un certain motif, version {VERSION}");
-		return;
-	}
+	let app_base_path: PathBuf = env::current_dir().unwrap_or_else(|_| process::exit(1));
 
 	// Vérifie le motif et le remplacement
 	let pattern = match &opts.pattern {
@@ -65,104 +43,74 @@ Arguments en position:
 			return;
 		}
 	};
-
 	// Détermine les répertoires à explorer
-	let dirs = if opts.directories.is_empty() {
-		vec![".".to_string()]
-	}
-	else {
-		opts.directories.clone()
-	};
+	let dirs = if opts.directories.is_empty() { vec![".".to_string()] }
+				else { opts.directories.clone() };
+
+	// Détermine re en rapport à l'option ignore_case
+	let re = if opts.ignore_case { Regex::new(&format!("(?i){}", pattern)).unwrap() }
+				else { Regex::new(&pattern).unwrap() };
+
+	println!("{}", app_base_path.display());
+	println!("Options: {:#?}", &opts);
+	println!("* * * * * * * * * * * * * * *");
 
 	// Lance le traitement pour chaque répertoire
-	for dir in dirs {
+	for (i, dir) in dirs.iter().enumerate() {
 		let path = Path::new(&dir);
-		visit_dir(path, pattern, replacement, &opts, opts.include_dir);
-	}
-}
-
-fn visit_dir(path: &Path, pattern: &str, replacement: &str, opts: &Options, include_self: bool) {
-	if include_self {
-		handle_entry(path, pattern, replacement, opts);
-	}
-	if let Ok(entries) = fs::read_dir(path) {
-		for entry in entries.filter_map(Result::ok) {
-			let p = entry.path();
-
-			if opts.recursive && p.is_dir() {
-				visit_dir(&p, pattern, replacement, opts, true);
-			}
-
-			handle_entry(&p, pattern, replacement, opts);
+		if !path.is_dir() {
+			eprintln!("\x1b[1;31m\x1b[40m {} \x1b[0m n'est pas un répertoire valide.", path.display());
+			continue;
 		}
-	}
-}
+		// À partir d'ici nous avons un répertoire valide.
 
-fn handle_entry(path: &Path, pattern: &str, replacement: &str, opts: &Options) {
-	let is_file = path.is_file();
-	let is_dir = path.is_dir();
+		if let Err(e) = env::set_current_dir(&path) {
+			eprintln!("Erreur changement vers {:?} : {}", path, e);
+			let _ = env::set_current_dir(&app_base_path);
+			continue;
+		}
 
-	// Respecte les filtres -f / -d
-	if (opts.files_only && !is_file) || (opts.dirs_only && !is_dir) {
-		return;
-	}
+		let mut abs_loop_dir: PathBuf = env::current_dir().unwrap_or_else(|_| process::exit(1));
 
-	let file_name = match path.file_name().and_then(|s| s.to_str()) {
-		Some(name) => name,
-		None => return,
-	};
+		if opts.verbose {
+			if i != 0 {
+				println!("✦ ✦ ✦ ✦ ✦ ✦ ✦ ✦ ✦ ✦ ✦ ✦ ✦ ✦ ✦ ✦ ✦ ✦ ✦ ✦ ✦ ✦ ✦ ✦ ✦ ✦ ✦ ✦")
+			}
+			println!("traitement du répertoire «\x1b[1;34m{}\x1b[0m»", abs_loop_dir.display());
+		}
 
-	// Remplacement simple sans regex
-	let new_name = if opts.ignore_case {
-		replace_ignore_case(file_name, pattern, replacement)
-	} else {
-		file_name.replace(pattern, replacement)
-	};
+		if opts.include_dir && !opts.files_only {
+			let Some(base_path_dir) = abs_loop_dir.file_name().and_then(|n| n.to_str()) else {
+				continue;
+			};
+			let abs_parent_dir = abs_loop_dir.parent().unwrap_or_else(|| Path::new(""));
+			let new_base_path = re.replace(base_path_dir, replacement).to_string();
 
-	if new_name == file_name {
-		return;
-	}
+			if base_path_dir != new_base_path {
+				println!("- - - - -\nRenommage du répertoire source");
 
-	let new_path = path.with_file_name(&new_name);
+				if let Err(e) = env::set_current_dir(abs_parent_dir) {
+					eprintln!("Erreur changement vers {:?} : {}", abs_parent_dir, e);
+					let _ = env::set_current_dir(&app_base_path);
+					continue;
+				}
 
-	if opts.simulate {
-		println!("{} \x1b[92m\x1b[40m Deviendrait \x1b[0m {}", path.display(), new_path.display());
-	}
-	else {
-		match fs::rename(path, &new_path) {
-			Ok(_) => {
-				if opts.verbose {
-					println!("{} \x1b[91m\x1b[40m est devenu \x1b[0m {}", path.display(), new_path.display());
+				if renomme(base_path_dir, &new_base_path, "⨀ ", &opts) {
+					abs_loop_dir = abs_parent_dir.join(&new_base_path);
+					println!("Nouveau chemin absolu : {}", abs_loop_dir.display());
+				}
+				println!("- - - - -");
+
+				if let Err(e) = env::set_current_dir(&abs_loop_dir) {
+					eprintln!("Erreur changement vers {:?} : {}", abs_loop_dir, e);
+					let _ = env::set_current_dir(&app_base_path);
+					continue;
 				}
 			}
-			Err(e) => {
-				eprintln!("Erreur : Impossible de renommer {:?} → {:?} : {}", path, new_path, e);
-			}
+			println!("- - - - - - - - - - - - - - - - - - - - - - - - - - - -");
+			println!("Dossier: {}", abs_loop_dir.display());
 		}
+		scan_dir(&replacement, &re, &opts, 2);
+		let _ = env::set_current_dir(&app_base_path);	// On rammène app_base_path pour la boucle
 	}
-}
-
-// Remplacement insensible à la casse
-fn replace_ignore_case(source: &str, pattern: &str, replacement: &str) -> String {
-	let source_chars: Vec<char> = source.chars().collect();
-	let pattern_len = pattern.chars().count();
-	let pattern_lower = pattern.to_lowercase();
-
-	let mut result = String::new();
-	let mut i = 0;
-
-	while i < source_chars.len() {
-		// Vérifie qu'il reste assez de caractères pour comparer
-		if i + pattern_len <= source_chars.len() {
-			let slice: String = source_chars[i..i + pattern_len].iter().collect();
-			if slice.to_lowercase() == pattern_lower {
-				result.push_str(replacement);
-				i += pattern_len;
-				continue;
-			}
-		}
-		result.push(source_chars[i]);
-		i += 1;
-	}
-	result
 }

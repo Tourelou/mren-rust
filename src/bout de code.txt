@@ -1,0 +1,108 @@
+Voici une fonction Rust qui parcourt récursivement un répertoire, applique un motif
+regex sur les fichiers qu’il rencontre, et appelle une fonction personnalisée
+`renomme(name, newname)` lorsqu’un match est trouvé. On suppose que `renomme` est
+une fonction que tu as définie quelque part dans ton projet.
+
+---
+
+## 🧠 Dépendances nécessaires
+
+Assure-toi d’avoir la crate `regex` dans ton `Cargo.toml` :
+
+```toml
+[dependencies]
+regex = "1"
+```
+
+---
+
+## 🛠️ Fonction `traverse_et_renomme`
+
+```rust
+use std::fs;
+use std::path::{Path, PathBuf};
+use regex::Regex;
+
+/// Parcourt récursivement le répertoire et appelle `renomme()` pour chaque fichier correspondant au pattern.
+pub fn traverse_et_renomme(base_dir: &Path, pattern: &Regex) {
+    if !base_dir.is_dir() {
+        return;
+    }
+
+    let entries = match fs::read_dir(base_dir) {
+        Ok(e) => e,
+        Err(_) => return,
+    };
+
+    for entry in entries {
+        if let Ok(entry) = entry {
+            let path = entry.path();
+
+            if path.is_dir() {
+                // 🔁 Appel récursif si c’est un sous-répertoire
+                traverse_et_renomme(&path, pattern);
+            } else if let Some(name) = path.file_name().and_then(|n| n.to_str()) {
+                if pattern.is_match(name) {
+                    let newname = pattern.replace(name, "renommé_$0"); // Exemple de remplacement
+                    renomme(name, &newname); // Ta fonction personnalisée
+                }
+            }
+        }
+    }
+}
+```
+
+---
+
+## 🧪 Exemple d’utilisation
+
+```rust
+fn main() {
+    let pattern = Regex::new(r"^data_\d+\.txt$").unwrap();
+    let base_path = PathBuf::from("mon/répertoire");
+
+    traverse_et_renomme(&base_path, &pattern);
+}
+
+// Exemple de fonction `renomme`
+fn renomme(original: &str, newname: &str) {
+    println!("Renommer '{}' en '{}'", original, newname);
+    // Tu peux ici faire un vrai renommage avec std::fs::rename()
+}
+```
+#################################################################
+
+Parfait, c’est super clair ! 😎 Ce que tu veux, c’est **remplacer une sous-chaîne**
+correspondant à une regex dans un nom de fichier, sans toucher au reste. Voici
+exactement ce qu’il te faut :
+
+---
+
+### 🧠 Exemple Rust pour renommer un fichier selon un motif
+
+```rust
+use regex::Regex;
+
+fn renomme(original: &str, motif: &str, remplacement: &str) -> String {
+    let re = Regex::new(motif).unwrap();
+    re.replace(original, remplacement).to_string()
+}
+
+fn main() {
+    let nom_original = "abc123def.txt";
+    let motif = "123";
+    let remplacement = "xyz";
+
+    let nouveau_nom = renomme(nom_original, motif, remplacement);
+    println!("Nouveau nom : {}", nouveau_nom); // abcxyzdef.txt
+}
+```
+
+---
+
+### 🧩 Détails :
+- `Regex::new(motif)` compile ton motif (ex. `"123"` ou une regex comme `\d+`)
+- `replace(original, remplacement)` remplace **la première occurrence** (ou toutes, avec `replace_all`)
+- `.to_string()` te donne un `String` utilisable
+
+---

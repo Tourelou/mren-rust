@@ -14,7 +14,7 @@ use action::scan_dir;
 use action::renomme;
 
 const PRG_NAME: &str = "mren";
-const VERSION: &str = "2025-07-31";
+const VERSION: &str = "2025-08-01";
 
 fn main() {
 	let mut opts = Options::parse_args(PRG_NAME, VERSION);
@@ -70,7 +70,7 @@ fn main() {
 
 		if opts.verbose {
 			if i != 0 {
-				println!("- - - - - - - - - - - - -")
+				println!("- - - - - - - - - - - - - - - - - - - - - - - - -")
 			}
 			println!("Traitement du répertoire «\x1b[1;34m{}\x1b[0m»", abs_loop_dir.display());
 		}
@@ -83,7 +83,7 @@ fn main() {
 			let new_base_path = re.replace(base_path_dir, replacement).to_string();
 
 			if base_path_dir != new_base_path {
-				println!("- - - - -\nRenommage du répertoire source");
+				if opts.verbose { println!("- - - - -\nRenommage du répertoire source"); }
 
 				if let Err(e) = env::set_current_dir(abs_parent_dir) {
 					eprintln!("Erreur changement vers {:?} : {}", abs_parent_dir, e);
@@ -96,7 +96,7 @@ fn main() {
 
 				if fait {
 					abs_loop_dir = abs_parent_dir.join(&new_base_path);
-					println!("Nouveau chemin absolu : {}", abs_loop_dir.display());
+					if opts.verbose { println!("Nouveau chemin absolu : {}", abs_loop_dir.display()); }
 				}
 				if let Err(e) = env::set_current_dir(&abs_loop_dir) {
 					eprintln!("Erreur changement vers {:?} : {}", abs_loop_dir, e);
@@ -104,10 +104,8 @@ fn main() {
 					println!("- - - - -");
 					continue;
 				}
-				println!("- - - - -");
-
+				if opts.verbose { println!("- - - - -"); }
 			}
-			println!("- - - - - - - - - - - - - - - - - - - - - - - - - - - -");
 		}
 		let (found, output_lines) = scan_dir(&replacement, &re, &opts, 0);
 

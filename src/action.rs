@@ -86,9 +86,10 @@ pub fn scan_dir(repl: &String, regex: &Regex, opts: &Options, iteration: usize) 
 			let (sub_found, sub_lines) = scan_dir(repl, regex, opts, iteration + 1);
 
 			if sub_found {
-				lines.push(format!("{}Examen du répertoire: «\x1b[1;34m{}\x1b[0m»", prefix, path.display()));
+				lines.push(format!("{}└ \x1b[1;34m{}\x1b[0m ┐", prefix, path.display()));
 				lines.extend(sub_lines);
 				found = true;
+				lines.push(format!("{}┌ \x1b[1;34m{}\x1b[0m ┘", prefix, path.display()));
 			}
 
 			if let Err(e) = std::env::set_current_dir("..") {

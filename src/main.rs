@@ -14,7 +14,7 @@ use action::scan_dir;
 use action::renomme;
 
 const PRG_NAME: &str = "mren";
-const VERSION: &str = "2025-07-26";
+const VERSION: &str = "2025-07-31";
 
 fn main() {
 	let mut opts = Options::parse_args(PRG_NAME, VERSION);
@@ -51,10 +51,6 @@ fn main() {
 	let re = if opts.ignore_case { Regex::new(&format!("(?i){}", pattern)).unwrap() }
 				else { Regex::new(&pattern).unwrap() };
 
-	println!("{}", app_base_path.display());
-	println!("Options: {:#?}", &opts);
-	println!("* * * * * * * * * * * * * * *");
-
 	// Lance le traitement pour chaque répertoire
 	for (i, dir) in dirs.iter().enumerate() {
 		let path = Path::new(&dir);
@@ -74,9 +70,9 @@ fn main() {
 
 		if opts.verbose {
 			if i != 0 {
-				println!("✦ ✦ ✦ ✦ ✦ ✦ ✦ ✦ ✦ ✦ ✦ ✦ ✦ ✦ ✦ ✦ ✦ ✦ ✦ ✦ ✦ ✦ ✦ ✦ ✦ ✦ ✦ ✦")
+				println!("- - - - - - - - - - - - -")
 			}
-			println!("traitement du répertoire «\x1b[1;34m{}\x1b[0m»", abs_loop_dir.display());
+			println!("Traitement du répertoire «\x1b[1;34m{}\x1b[0m»", abs_loop_dir.display());
 		}
 
 		if opts.include_dir && !opts.files_only {
@@ -95,22 +91,29 @@ fn main() {
 					continue;
 				}
 
-				if renomme(base_path_dir, &new_base_path, "⨀ ", &opts) {
+				let (fait, verbatim) = renomme(base_path_dir, &new_base_path, "--", &opts);
+				for line in verbatim { println!("{}", line); }
+
+				if fait {
 					abs_loop_dir = abs_parent_dir.join(&new_base_path);
 					println!("Nouveau chemin absolu : {}", abs_loop_dir.display());
 				}
-				println!("- - - - -");
-
 				if let Err(e) = env::set_current_dir(&abs_loop_dir) {
 					eprintln!("Erreur changement vers {:?} : {}", abs_loop_dir, e);
 					let _ = env::set_current_dir(&app_base_path);
+					println!("- - - - -");
 					continue;
 				}
+				println!("- - - - -");
+
 			}
 			println!("- - - - - - - - - - - - - - - - - - - - - - - - - - - -");
-			println!("Dossier: {}", abs_loop_dir.display());
 		}
-		scan_dir(&replacement, &re, &opts, 2);
+		let (found, output_lines) = scan_dir(&replacement, &re, &opts, 0);
+
+		if found { for line in output_lines { println!("{}", line); } }
+		else { println!("Pas de correspondance dans ce dossier"); }
+
 		let _ = env::set_current_dir(&app_base_path);	// On rammène app_base_path pour la boucle
 	}
 }

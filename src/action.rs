@@ -2,18 +2,18 @@
 
 use std::fs;
 use regex::Regex;
-use std::path::Path;
+// use std::path::Path;
 use crate::parse::Options;
 
 pub fn scan_dir(repl: &String, regex: &Regex, opts: &Options, iteration: usize) -> (bool, Vec<String>) {
 	let mut found = false;
 	let mut lines = Vec::new();
 	if iteration > 100 {
-		lines.push("Profondeur de récursion trop grande (>100)".to_string());
+		lines.push("Trop de récursion (>100)".to_string());
 		return (false, lines);
 	}
 
-	let prefix = format!("{}", "  ".repeat(iteration));
+	let prefix = format!("{}", "  ".repeat(iteration));	// 2 espaces par itération
 
 	let entries = match fs::read_dir(".") {
 		Ok(e) => e,
@@ -31,7 +31,7 @@ pub fn scan_dir(repl: &String, regex: &Regex, opts: &Options, iteration: usize) 
 		match entry {
 			Ok(e) => {
 				let path = e.path();
-				if path.is_file() {
+				if path.is_file() && ! opts.dirs_only {
 					files.push(e);
 				} else if path.is_dir() {
 					dirs.push(e);
@@ -42,7 +42,22 @@ pub fn scan_dir(repl: &String, regex: &Regex, opts: &Options, iteration: usize) 
 			}
 		}
 	}
-
+	// Trier les fichiers par nom de fichier (insensible à la casse)
+	if ! files.is_empty() {
+		files.sort_by(|a, b| {
+			let name_a = a.file_name().to_string_lossy().to_lowercase();
+			let name_b = b.file_name().to_string_lossy().to_lowercase();
+			name_a.cmp(&name_b)
+		});
+	}
+	// Trier les répertoires aussi si tu veux
+	if ! dirs.is_empty() {
+		dirs.sort_by(|a, b| {
+			let name_a = a.file_name().to_string_lossy().to_lowercase();
+			let name_b = b.file_name().to_string_lossy().to_lowercase();
+			name_a.cmp(&name_b)
+		});
+	}
 	// 🔹 Renommer les fichiers
 	for entry in files {
 		let file_name = entry.file_name();
@@ -67,17 +82,25 @@ pub fn scan_dir(repl: &String, regex: &Regex, opts: &Options, iteration: usize) 
 			None => continue,
 		};
 
-		let mut new_dir_name = dir_name_str.to_string();
+		let mut path = match dir_name.to_str() {
+			Some(s) => s.to_string(),
+			None => continue,
+		};
 
-		if regex.is_match(dir_name_str) {
-			new_dir_name = regex.replace_all(dir_name_str, repl).to_string();
-			let (_, sub_lines) = renomme(dir_name_str, &new_dir_name, &prefix, opts);
-			lines.extend(sub_lines);
-			found = true;
+		if ! opts.files_only {
+			if regex.is_match(dir_name_str) {
+				let new_dir_name = regex.replace_all(dir_name_str, repl).to_string();
+				let (done, sub_lines) = renomme(dir_name_str, &new_dir_name, &prefix, opts);
+	
+				if done {
+					path = new_dir_name;
+				}
+				lines.extend(sub_lines);
+				found = true;
+			}
 		}
 
-		let path = Path::new(&new_dir_name);
-		if opts.recursive && path.is_dir() {
+		if opts.recursive {
 			if let Err(e) = std::env::set_current_dir(&path) {
 				lines.push(format!("{}Impossible d'entrer dans le dossier {:?}: {}", prefix, path, e));
 				continue;
@@ -86,10 +109,10 @@ pub fn scan_dir(repl: &String, regex: &Regex, opts: &Options, iteration: usize) 
 			let (sub_found, sub_lines) = scan_dir(repl, regex, opts, iteration + 1);
 
 			if sub_found {
-				lines.push(format!("{}└ \x1b[1;34m{}\x1b[0m ┐", prefix, path.display()));
+				lines.push(format!("{}└ \x1b[1;34m{}\x1b[0m ┐", prefix, path));
 				lines.extend(sub_lines);
 				found = true;
-				lines.push(format!("{}┌ \x1b[1;34m{}\x1b[0m ┘", prefix, path.display()));
+				lines.push(format!("{}┌ \x1b[1;34m{}\x1b[0m ┘", prefix, path));
 			}
 
 			if let Err(e) = std::env::set_current_dir("..") {

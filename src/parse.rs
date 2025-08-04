@@ -1,4 +1,8 @@
+
 use std::env;
+
+use crate::locale::LangStrings;
+use crate::locale::LANG_EN;
 
 #[derive(Debug)]
 pub struct Options {
@@ -9,6 +13,7 @@ pub struct Options {
 	pub ignore_case: bool,
 	pub simulate: bool,
 	pub verbose: bool,
+	pub locale: LangStrings,
 	pub pattern: Option<String>,
 	pub replacement: Option<String>,
 	pub directories: Vec<String>,
@@ -25,6 +30,7 @@ impl Options {
 			ignore_case: false,
 			simulate: false,
 			verbose: false,
+			locale: LANG_EN,
 			pattern: None,
 			replacement: None,
 			directories: Vec::new(),
@@ -55,7 +61,7 @@ impl Options {
 				}
 			}
 			else if arg.starts_with('-') && arg.len() > 2 {
-	        // Option combinée courte : -nI → -n et -I
+			// Option combinée courte : -nI → -n et -I
 				for ch in arg.chars().skip(1) {
 					match ch {
 						'f' => opts.files_only = true,

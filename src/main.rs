@@ -1,23 +1,25 @@
 // main.rs
+
 mod parse;
 mod action;
+mod locale;
 
 use std::env;
 use std::process;
 use std::path::PathBuf;
 use std::path::Path;
-// use std::fs;
 use regex::Regex;
 
-use parse::Options;
-use action::scan_dir;
-use action::renomme;
-
 const PRG_NAME: &str = "mren";
-const VERSION: &str = "2025-08-01";
+const VERSION: &str = "2025-08-03";
 
 fn main() {
-	let mut opts = Options::parse_args(PRG_NAME, VERSION);
+	let mut opts = parse::Options::parse_args(PRG_NAME, VERSION);
+
+	opts.locale = locale::set_lang_vec();
+
+	println!("{}", opts.locale.options);
+	println!("{}", opts.locale.usage);
 
 	if opts.files_only && opts.dirs_only {
 		eprintln!("-f et -d sont mutuellement exclusif. C'est un ou c'est l'autre.");
@@ -91,7 +93,7 @@ fn main() {
 					continue;
 				}
 
-				let (fait, verbatim) = renomme(base_path_dir, &new_base_path, "--", &opts);
+				let (fait, verbatim) = action::renomme(base_path_dir, &new_base_path, "--", &opts);
 				for line in verbatim { println!("{}", line); }
 
 				if fait {
@@ -107,7 +109,7 @@ fn main() {
 				if opts.verbose { println!("- - - - -"); }
 			}
 		}
-		let (found, output_lines) = scan_dir(&replacement, &re, &opts, 0);
+		let (found, output_lines) = action::scan_dir(&replacement, &re, &opts, 0);
 
 		if found { for line in output_lines { println!("{}", line); } }
 		else { println!("Pas de correspondance dans ce dossier"); }

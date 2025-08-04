@@ -2,14 +2,13 @@
 
 use std::fs;
 use regex::Regex;
-// use std::path::Path;
 use crate::parse::Options;
 
 pub fn scan_dir(repl: &String, regex: &Regex, opts: &Options, iteration: usize) -> (bool, Vec<String>) {
 	let mut found = false;
 	let mut lines = Vec::new();
 	if iteration > 100 {
-		lines.push("Trop de récursion (>100)".to_string());
+		lines.push(opts.locale.err_trop_recurs.to_string());
 		return (false, lines);
 	}
 
@@ -18,7 +17,7 @@ pub fn scan_dir(repl: &String, regex: &Regex, opts: &Options, iteration: usize) 
 	let entries = match fs::read_dir(".") {
 		Ok(e) => e,
 		Err(e) => {
-			lines.push(format!("{}Erreur de lecture du répertoire: {}", prefix, e));
+			lines.push(format!("{prefix}{} {e}", opts.locale.err_read_dir));
 			return (false, lines);
 		}
 	};
@@ -38,7 +37,7 @@ pub fn scan_dir(repl: &String, regex: &Regex, opts: &Options, iteration: usize) 
 				}
 			}
 			Err(e) => {
-				lines.push(format!("{}Entrée illisible: {}", prefix, e));
+				lines.push(format!("{prefix}{} {e}", opts.locale.err_entry));
 			}
 		}
 	}
@@ -90,9 +89,9 @@ pub fn scan_dir(repl: &String, regex: &Regex, opts: &Options, iteration: usize) 
 		if ! opts.files_only {
 			if regex.is_match(dir_name_str) {
 				let new_dir_name = regex.replace_all(dir_name_str, repl).to_string();
-				let (done, sub_lines) = renomme(dir_name_str, &new_dir_name, &prefix, opts);
+				let (fait, sub_lines) = renomme(dir_name_str, &new_dir_name, &prefix, opts);
 	
-				if done {
+				if fait {
 					path = new_dir_name;
 				}
 				lines.extend(sub_lines);
@@ -102,21 +101,21 @@ pub fn scan_dir(repl: &String, regex: &Regex, opts: &Options, iteration: usize) 
 
 		if opts.recursive {
 			if let Err(e) = std::env::set_current_dir(&path) {
-				lines.push(format!("{}Impossible d'entrer dans le dossier {:?}: {}", prefix, path, e));
+				lines.push(format!("{prefix}{} {path}: {e}", opts.locale.err_chdir));
 				continue;
 			}
 
 			let (sub_found, sub_lines) = scan_dir(repl, regex, opts, iteration + 1);
 
 			if sub_found {
-				lines.push(format!("{}└ \x1b[1;34m{}\x1b[0m ┐", prefix, path));
+				lines.push(format!("{prefix}└ \x1b[1;34m{path}\x1b[0m ┐"));
 				lines.extend(sub_lines);
 				found = true;
-				lines.push(format!("{}┌ \x1b[1;34m{}\x1b[0m ┘", prefix, path));
+				lines.push(format!("{prefix}┌ \x1b[1;34m{path}\x1b[0m ┘"));
 			}
 
 			if let Err(e) = std::env::set_current_dir("..") {
-				lines.push(format!("{}Erreur en revenant au dossier parent: {}", prefix, e));
+				lines.push(format!("{prefix}{} {e}", opts.locale.err_chdir_parent));
 				return (found, lines);
 			}
 		}
@@ -127,7 +126,7 @@ pub fn scan_dir(repl: &String, regex: &Regex, opts: &Options, iteration: usize) 
 pub fn renomme(nom: &str, nouveau_nom: &str, indent: &str, opts: &Options) -> (bool, Vec<String>) {
 	let mut lines = Vec::new();
 	if opts.simulate {
-		lines.push(format!("{indent}▶︎ {nom} \x1b[92m\x1b[40m ==> Deviendrait ==> \x1b[0m {nouveau_nom}"));
+		lines.push(format!("{indent}▶︎ {nom} \x1b[92m\x1b[40m {} \x1b[0m {nouveau_nom}", opts.locale.devient));
 		return (false, lines);
 	}
 	else {
@@ -135,12 +134,12 @@ pub fn renomme(nom: &str, nouveau_nom: &str, indent: &str, opts: &Options) -> (b
 		match fs::rename(nom, nouveau_nom) {
 			Ok(_) => {
 				if opts.verbose {
-					lines.push(format!("{indent}▶︎ {nom} \x1b[91m\x1b[40m ==> est devenu ==> \x1b[0m {nouveau_nom}"));
+					lines.push(format!("{indent}▶︎ {nom} \x1b[91m\x1b[40m {} \x1b[0m {nouveau_nom}", opts.locale.devenu));
 				}
 				return (true, lines);
 			}
 			Err(e) => {
-				lines.push(format!("Erreur lors du renommage de {}: {}", nom, e));
+				lines.push(format!("{indent}!- {} {}: {}", opts.locale.err_renom, nom, e));
 				return (false, lines);
 			}
 		}

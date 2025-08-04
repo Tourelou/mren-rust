@@ -11,18 +11,13 @@ use std::path::Path;
 use regex::Regex;
 
 const PRG_NAME: &str = "mren";
-const VERSION: &str = "2025-08-03";
+const VERSION: &str = "2025-08-04";
 
 fn main() {
 	let mut opts = parse::Options::parse_args(PRG_NAME, VERSION);
 
-	opts.locale = locale::set_lang_vec();
-
-	println!("{}", opts.locale.options);
-	println!("{}", opts.locale.usage);
-
 	if opts.files_only && opts.dirs_only {
-		eprintln!("-f et -d sont mutuellement exclusif. C'est un ou c'est l'autre.");
+		eprintln!("{}", opts.locale.err_mutuel);
 		std::process::exit(1);
 	}
 	if opts.simulate { opts.verbose = true };
@@ -33,7 +28,7 @@ fn main() {
 	let pattern = match &opts.pattern {
 		Some(p) => p,
 		None => {
-			eprintln!("Erreur : motif regex manquant.");
+			eprintln!("{}", opts.locale.err_regex_manque);
 			return;
 		}
 	};
@@ -41,7 +36,7 @@ fn main() {
 	let replacement = match &opts.replacement {
 		Some(r) => r,
 		None => {
-			eprintln!("Erreur : chaîne de remplacement manquante.");
+			eprintln!("{}", opts.locale.err_rempl_manque);
 			return;
 		}
 	};
@@ -57,13 +52,13 @@ fn main() {
 	for (i, dir) in dirs.iter().enumerate() {
 		let path = Path::new(&dir);
 		if !path.is_dir() {
-			eprintln!("\x1b[1;31m\x1b[40m {} \x1b[0m n'est pas un répertoire valide.", path.display());
+			eprintln!("\x1b[1;31m\x1b[40m {} \x1b[0m {}", path.display(), opts.locale.err_dir_invalide);
 			continue;
 		}
 		// À partir d'ici nous avons un répertoire valide.
 
 		if let Err(e) = env::set_current_dir(&path) {
-			eprintln!("Erreur changement vers {:?} : {}", path, e);
+			eprintln!("{} {:?} : {}", opts.locale.err_chdir, path, e);
 			let _ = env::set_current_dir(&app_base_path);
 			continue;
 		}
@@ -74,7 +69,7 @@ fn main() {
 			if i != 0 {
 				println!("- - - - - - - - - - - - - - - - - - - - - - - - -")
 			}
-			println!("Traitement du répertoire «\x1b[1;34m{}\x1b[0m»", abs_loop_dir.display());
+			println!("{} «\x1b[1;34m{}\x1b[0m»", opts.locale.process_dir, abs_loop_dir.display());
 		}
 
 		if opts.include_dir && !opts.files_only {
@@ -85,10 +80,10 @@ fn main() {
 			let new_base_path = re.replace(base_path_dir, replacement).to_string();
 
 			if base_path_dir != new_base_path {
-				if opts.verbose { println!("- - - - -\nRenommage du répertoire source"); }
+				if opts.verbose { println!("{}", opts.locale.ren_src_dir); }
 
 				if let Err(e) = env::set_current_dir(abs_parent_dir) {
-					eprintln!("Erreur changement vers {:?} : {}", abs_parent_dir, e);
+					eprintln!("{} {:?} : {}", opts.locale.err_chdir, abs_parent_dir, e);
 					let _ = env::set_current_dir(&app_base_path);
 					continue;
 				}
@@ -98,10 +93,10 @@ fn main() {
 
 				if fait {
 					abs_loop_dir = abs_parent_dir.join(&new_base_path);
-					if opts.verbose { println!("Nouveau chemin absolu : {}", abs_loop_dir.display()); }
+					if opts.verbose { println!("{} {}", opts.locale.nouveau_path, abs_loop_dir.display()); }
 				}
 				if let Err(e) = env::set_current_dir(&abs_loop_dir) {
-					eprintln!("Erreur changement vers {:?} : {}", abs_loop_dir, e);
+					eprintln!("{} {:?} : {}", opts.locale.err_chdir, abs_loop_dir, e);
 					let _ = env::set_current_dir(&app_base_path);
 					println!("- - - - -");
 					continue;
@@ -112,7 +107,7 @@ fn main() {
 		let (found, output_lines) = action::scan_dir(&replacement, &re, &opts, 0);
 
 		if found { for line in output_lines { println!("{}", line); } }
-		else { println!("Pas de correspondance dans ce dossier"); }
+		else { println!("{}", opts.locale.no_match); }
 
 		let _ = env::set_current_dir(&app_base_path);	// On rammène app_base_path pour la boucle
 	}

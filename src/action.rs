@@ -1,7 +1,7 @@
 // action.rs
 
 use std::fs;
-use regex::Regex;
+use regex_lite::Regex;
 use crate::parse::Options;
 
 pub fn scan_dir(repl: &String, regex: &Regex, opts: &Options, iteration: usize) -> (bool, Vec<String>) {

@@ -8,7 +8,7 @@ use std::env;
 use std::process;
 use std::path::PathBuf;
 use std::path::Path;
-use regex::Regex;
+use regex_lite::Regex;
 
 const PRG_NAME: &str = "mren";
 const VERSION: &str = "2025-08-04";

@@ -32,7 +32,7 @@ pub fn scan_dir(repl: &String, regex: &Regex, opts: &Options, iteration: usize) 
 				let path = e.path();
 				if path.is_file() && ! opts.dirs_only {
 					files.push(e);
-				} else if path.is_dir() {
+				} else if path.is_dir() && ! path.is_symlink() {
 					dirs.push(e);
 				}
 			}

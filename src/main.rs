@@ -11,7 +11,7 @@ use std::path::Path;
 use regex_lite::Regex;
 
 const PRG_NAME: &str = "mren";
-const VERSION: &str = "2025-08-04";
+const VERSION: &str = "2025-08-05";
 
 fn main() {
 	let mut opts = parse::Options::parse_args(PRG_NAME, VERSION);

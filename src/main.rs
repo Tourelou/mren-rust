@@ -11,10 +11,16 @@ use std::path::Path;
 use regex_lite::Regex;
 
 const PRG_NAME: &str = "mren";
-const VERSION: &str = "2025-08-05";
+const VERSION: &str = "2026-02-11";
 
 fn main() {
-	let mut opts = parse::Options::parse_args(PRG_NAME, VERSION);
+	let mut opts = match parse::parse_args(PRG_NAME, VERSION) {
+		Ok(c) => c,
+		Err(msg) => {
+			println!("{msg}");
+			std::process::exit(10);
+		}
+	};
 
 	if opts.files_only && opts.dirs_only {
 		eprintln!("{}", opts.locale.err_mutuel);

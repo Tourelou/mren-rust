@@ -1,10 +1,9 @@
+// parse.rs
 
-use std::env;
-
+use lexopt::{Arg, Parser};
 use  crate::locale;
 
-#[derive(Debug)]
-pub struct Options {
+pub struct AppOptions {
 	pub files_only: bool,
 	pub dirs_only: bool,
 	pub recursive: bool,
@@ -18,104 +17,6 @@ pub struct Options {
 	pub directories: Vec<String>,
 }
 
-impl Options {
-	pub fn parse_args(prg_name: &str, version: &str) -> Self {
-		let args: Vec<String> = env::args().skip(1).collect();
-		let mut opts = Options {
-			files_only: false,
-			dirs_only: false,
-			recursive: false,
-			include_dir: false,
-			ignore_case: false,
-			simulate: false,
-			verbose: false,
-			locale: locale::set_lang_vec(),
-			pattern: None,
-			replacement: None,
-			directories: Vec::new(),
-		};
-
-		if args.len() == 0 {
-			eprintln!("{}", opts.locale.manque_args);
-			help(prg_name, opts.locale.options, 1);	// forme longue
-		}
-
-		for arg in args.iter() {
-			if arg == "-ver" {
-				versions(prg_name, version, opts.locale.ver);	// version courte
-			}
-			else if arg.starts_with("--") {
-				match arg.as_str() {
-					"--recursive" => opts.recursive = true,
-					"--include" => opts.include_dir = true,
-					"--ignoreCase" => opts.ignore_case = true,
-					"--simulate" => opts.simulate = true,
-					"--verbose" => opts.verbose = true,
-					"--version" => versions(prg_name, version, opts.locale.ver_desc), // version longue
-					"--help" => help(prg_name, opts.locale.options, 0),	// forme longue
-					_ => {
-//						eprintln!("Erreur : option longue invalide '{}'", arg);
-						eprintln!("{} '{}'", opts.locale.err_opt_longue, arg);
-						std::process::exit(1);
-					}
-				}
-			}
-			else if arg.starts_with('-') && arg.len() > 2 {
-			// Option combinée courte : -nI → -n et -I
-				for ch in arg.chars().skip(1) {
-					match ch {
-						'f' => opts.files_only = true,
-						'd' => opts.dirs_only = true,
-						'r' => opts.recursive = true,
-						'i' => opts.include_dir = true,
-						'I' => opts.ignore_case = true,
-						'n' => opts.simulate = true,
-						'v' => opts.verbose = true,
-						'h' => help(prg_name, opts.locale.usage, 0),		// forme courte
-						// pas de version dans combinaison courte
-						_ => {
-//							eprintln!("Erreur : option invalide dans combinaison '-{}'", ch);
-							eprintln!("{} '-{}'", opts.locale.err_opt_comb, ch);
-							std::process::exit(1);
-						}
-					}
-				}
-			}
-			else if arg.starts_with('-') {
-			// Options courtes simples
-				match arg.as_str() {
-					"-f" => opts.files_only = true,
-					"-d" => opts.dirs_only = true,
-					"-r" => opts.recursive = true,
-					"-i" => opts.include_dir = true,
-					"-I" => opts.ignore_case = true,
-					"-n" => opts.simulate = true,
-					"-v" => opts.verbose = true,
-					"-h" => help(prg_name, opts.locale.usage, 0),		// forme courte
-					_ => {
-//						eprintln!("Erreur : option invalide '{}'", arg);
-						eprintln!("{} '{}'", opts.locale.err_opt_inv, arg);
-						std::process::exit(1);
-					}
-				}
-			}
-			else {
-			// Positionnels : motif, remplacement, dossier(s)
-				if opts.pattern.is_none() {
-					opts.pattern = Some(arg.to_string());
-				}
-				else if opts.replacement.is_none() {
-					opts.replacement = Some(arg.to_string());
-				}
-				else {
-					opts.directories.push(arg.to_string());
-				}
-			}
-		}
-		opts
-	}
-}
-
 fn help(prg_name: &str, loc_string: &str, ecode: i32) {
 	println!("usage: {prg_name} {loc_string}");
 	std::process::exit(ecode);
@@ -124,4 +25,53 @@ fn help(prg_name: &str, loc_string: &str, ecode: i32) {
 fn versions(prg_name: &str, version: &str, loc_string: &str) {
 	println!("{prg_name}{loc_string} {version}");
 	std::process::exit(0);
+}
+
+pub fn parse_args(prg_name: &str,prg_version: &str) -> Result<AppOptions, String> {
+	let mut opts = AppOptions {
+		files_only: false,
+		dirs_only: false,
+		recursive: false,
+		include_dir: false,
+		ignore_case: false,
+		simulate: false,
+		verbose: false,
+		locale: locale::set_lang_vec(),
+		pattern: None,
+		replacement: None,
+		directories: Vec::new(),
+	};
+	let mut parser = Parser::from_env();
+
+	while let Some(arg) = parser.next().map_err(|_| opts.locale.err_opt_format.to_string())? {
+		match arg {
+			Arg::Short('h') => help(prg_name, opts.locale.usage, 0),
+			Arg::Long("help") => help(prg_name, opts.locale.options, 0),
+			Arg::Short('V') => versions(prg_name, prg_version, opts.locale.ver),
+			Arg::Long("version") => versions(prg_name, prg_version, opts.locale.ver_desc),
+
+			Arg::Short('f') => opts.files_only = true,
+			Arg::Short('d') => opts.dirs_only = true,
+			Arg::Short('r') | Arg::Long("recursive") => opts.recursive = true,
+			Arg::Short('i') | Arg::Long("include") => opts.include_dir = true,
+			Arg::Short('I') | Arg::Long("ignoreCase") => opts.ignore_case = true,
+			Arg::Short('n') | Arg::Long("simulate") => opts.simulate = true,
+			Arg::Short('v') | Arg::Long("verbose") => opts.verbose = true,
+
+			Arg::Value(val) => { 
+				if opts.pattern == None { opts.pattern = val.into_string().ok();}
+				else if opts.replacement == None { opts.replacement = val.into_string().ok(); }
+				else { opts.directories.push(val.to_string_lossy().into_owned()); }},
+
+			inconnu => {
+				let nom = match inconnu {
+					Arg::Short(c) => format!("-{}", c),
+					Arg::Long(s) => format!("--{}", s),
+					_ => "inconnue".to_string(),
+				};
+				return Err(format!("{}", opts.locale.err_opt_inv.replace("{1}", &nom)));
+			}
+		}
+	}
+	Ok(opts)
 }

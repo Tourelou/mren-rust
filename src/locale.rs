@@ -9,69 +9,66 @@ r#"[-f|-d] [-riInv] <motif regex> <remplacement> [dirname ...]
 Renommage multiple selon un certain motif.
 
 Arguments en position:
-  <motif regex>     Motif à chercher: Mettre entre guillements '...'
+  <motif regex>     Motif à chercher : Mettre entre guillemets '...'
   <remplacement>    Chaîne de remplacement. Doit obligatoirement suivre le motif.
   [dirname ...]     Répertoire(s) de recherche.
 
-  Options:
+Options:
   -f                  N'agit que sur les fichiers.
   -d                  N'agit que sur les répertoires.
-  -r,   --recursive   Procède de façon récursive sur les répertoires.
-  -i,   --include     En mode récusif, inclu le dossier en ligne de commande.
-  -I,   --ignoreCase  Fait une recherche en ignorant la case.
-  -n,   --simulate    Simule les opérations demandées - Fichiers affectés en VERT.
-  -v,   --verbose     Donne des détails sur le(s) fichier(s) traité(s) - Fichiers affectés en ROUGE.
-  -ver, --version     Renommage multiple à partir d'un motif.
-  -h,   --help        Montre ce message d'aide et termine."#;
+  -r, --recursive     Procède de façon récursive sur les répertoires.
+  -i, --include       En mode récursif, inclut le dossier en ligne de commande.
+  -I, --ignoreCase    Fait une recherche en ignorant la casse.
+  -n, --simulate      Simule les opérations demandées - Fichiers affectés en VERT.
+  -v, --verbose       Donne des détails sur le(s) fichier(s) traité(s) - Fichiers affectés en ROUGE.
+  -V, --version       Affiche la version.
+  -h, --help          Montre ce message d'aide et termine."#;
 
 const OPTIONS_ES: &str =
-r#"[-f|-d] [-riInv] <patrón regex> <sustitución> [dirname ...]
+r#"[-f|-d] [-riInv] <patrón regex> <reemplazo> [dirname ...]
 
 Cambio de nombre múltiple según un patrón.
 
-Argumentos en posición:
-  <patrón regex>   Patrón de búsqueda: Poner entre comillas '...'
-  <reemplazo>   Cadena de reemplazo. Debe seguir el patrón.
-  [dirname ...]   Directorio(s) de búsqueda.
+Argumentos posicionales:
+  <patrón regex>    Patrón de búsqueda: Poner entre comillas '...'
+  <reemplazo>       Cadena de reemplazo. Debe seguir al patrón.
+  [dirname ...]     Directorio(s) de búsqueda.
 
 Opciones:
   -f                  Solo afecta a los archivos.
   -d                  Solo afecta a los directorios.
-  -r,   --recursive   Recursivo a los directorios.
-  -i,   --include     En modo recursivo, incluye la carpeta de línea de comandos.
-  -I,   --ignoreCase  Buscar ignorando la casilla.
-  -n,   --simulate    Simula las operaciones solicitadas - Archivos asignados en VERDE.
-  -v,   --verbose     Da detalles sobre el(s) archivo(s) procesado(s) - Archivos asignados en ROJO.
-  -ver, --version     Cambio de nombre múltiple a partir de un patrón.
-  -h,   --help        Muestra este mensaje de ayuda y finaliza."#;
+  -r, --recursive     Recursivo en los directorios.
+  -i, --include       En modo recursivo, incluye la carpeta de la línea de comandos.
+  -I, --ignoreCase    Ignorar distinción entre mayúsculas y minúsculas.
+  -n, --simulate      Simula las operaciones - Archivos afectados en VERDE.
+  -v, --verbose       Detalles sobre el/los archivo(s) procesado(s) - Afectados en ROJO.
+  -V, --version       Muestra la versión.
+  -h, --help          Muestra este mensaje de ayuda y finaliza."#;
 
 const OPTIONS_EN: &str =
-r#"[-f|-d] [-riInv] <regex pattern> <remplacement> [dirname ...]
+r#"[-f|-d] [-riInv] <regex pattern> <replacement> [dirname ...]
 
 Multiple renaming from a pattern.
 
 Positional arguments:
-  <regex pattern>   Pattern to serch: Put into single quote '...'
-  <remplacement>    Replacement string. Must follow the pattern.
+  <regex pattern>   Pattern to search: Put into single quotes '...'
+  <replacement>     Replacement string. Must follow the pattern.
   [dirname ...]     Path(s) to search.
 
 Options:
   -f                  Search only for files.
   -d                  Search only for folders.
-  -r,   --recursive   Recursively works through directories.
-  -i,   --include     In recursive mode, include the folder pass on the command line.
-  -I,   --ignoreCase  Self explained.
-  -n,   --simulate    Simulates the requested operations - Files affected in GREEN.
-  -v,   --verbose     Gives details of the processed file(s) - Affected files in RED.
-  -ver, --version     Multiple renaming from a pattern.
-  -h,   --help        Show this help message and exit."#;
+  -r, --recursive     Recursively works through directories.
+  -i, --include       In recursive mode, include the folder passed on the command line.
+  -I, --ignoreCase    Search ignoring case.
+  -n, --simulate      Simulates the requested operations - Affected files in GREEN.
+  -v, --verbose       Gives details of the processed file(s) - Affected files in RED.
+  -V, --version       Show version information.
+  -h, --help          Show this help message and exit."#;
 
-#[derive(Debug)]
 pub struct LangStrings {
-	pub err_opt_longue: &'static str,
-	pub err_opt_comb: &'static str,
+	pub err_opt_format: &'static str,
 	pub err_opt_inv: &'static str,
-	pub manque_args: &'static str,
 	pub err_mutuel: &'static str,
 	pub err_regex_manque: &'static str,
 	pub err_rempl_manque: &'static str,
@@ -95,10 +92,8 @@ pub struct LangStrings {
 }
 
 pub const LANG_FR: LangStrings = LangStrings {
-	err_opt_longue: "Erreur : option longue invalide",
-	err_opt_comb: "Erreur : option invalide dans combinaison",
-	err_opt_inv: "Erreur : option invalide",
-	manque_args: "Arguments nécessaire manquant !!\n-----",
+	err_opt_format: "Erreur : Ligne de commande mal formatée",
+	err_opt_inv: "Erreur : L'option '{1}' n'est pas reconnue.",
 	err_mutuel: "-f et -d sont mutuellement exclusif. C'est un ou c'est l'autre.",
 	err_regex_manque: "Erreur : motif regex manquant.",
 	err_rempl_manque: "Erreur : chaîne de remplacement manquante.",
@@ -122,20 +117,18 @@ pub const LANG_FR: LangStrings = LangStrings {
 };
 
 pub const LANG_ES: LangStrings = LangStrings {
-	err_opt_longue: "Error : Opción larga no válida",
-	err_opt_comb: "Error : Opción no válida en la combinación",
-	err_opt_inv: "Error : Opción no válida",
-	manque_args: "¡¡¡Faltan argumentos necesarios!!!\n-----",
-	err_mutuel: "-f y -d son mutuamente excluyentes. Es una o la otra.-f and -d are mutually exclusive. It's either one or the other.",
-	err_regex_manque: "Error : Falta patrón de expresión regular.",
-	err_rempl_manque: "Error : Falta cadena de reemplazo.",
+	err_opt_format: "Error: Línea de comandos mal formada.",
+	err_opt_inv: "Error: Opción '{1}' desconocida.",
+	err_mutuel: "-f y -d son mutuamente excluyentes. Es una o la otra.",
+	err_regex_manque: "Error: Falta el patrón de expresión regular.",
+	err_rempl_manque: "Error: Falta la cadena de reemplazo.",
 	err_dir_invalide: "no es un directorio válido.",
 	err_chdir: "Error al cambiar el directorio a",
 	err_chdir_parent: "Error al regresar a la carpeta principal:",
 	process_dir: "Procesando el directorio",
 	ren_src_dir: "- - - - -\nCambiar el nombre del directorio de origen",
 	nouveau_path: "Nueva ruta absoluta :",
-	no_match: "No hay coincidencias en este archivo",
+	no_match: "No hay coincidencias en esta carpeta",
 	devient: "==> Se convertiría en ==>",
 	devenu: "==> se convirtió en ==>",
 	err_renom: "Error al renombrar",
@@ -149,10 +142,8 @@ pub const LANG_ES: LangStrings = LangStrings {
 };
 
 pub const LANG_EN: LangStrings = LangStrings {
-	err_opt_longue: "Error : Invalid long option",
-	err_opt_comb: "Error : Invalid option in combination",
-	err_opt_inv: "Error : Invalid option",
-	manque_args: "Missing necessary arguments!!\n-----",
+	err_opt_format: "Error: Malformed command line.",
+	err_opt_inv: "Error: Unknown option '{1}'.",
 	err_mutuel: "-f and -d are mutually exclusive. It's either one or the other.",
 	err_regex_manque: "Error : Missing regex pattern.",
 	err_rempl_manque: "Error : Missing replacement string.",

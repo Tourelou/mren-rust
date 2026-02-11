@@ -2,9 +2,9 @@
 
 use std::fs;
 use regex_lite::Regex;
-use crate::parse::Options;
+use crate::parse::AppOptions;
 
-pub fn scan_dir(repl: &String, regex: &Regex, opts: &Options, iteration: usize) -> (bool, Vec<String>) {
+pub fn scan_dir(repl: &String, regex: &Regex, opts: &AppOptions, iteration: usize) -> (bool, Vec<String>) {
 	let mut found = false;
 	let mut lines = Vec::new();
 	if iteration > 100 {
@@ -123,7 +123,7 @@ pub fn scan_dir(repl: &String, regex: &Regex, opts: &Options, iteration: usize) 
 	(found, lines)
 }
 
-pub fn renomme(nom: &str, nouveau_nom: &str, indent: &str, opts: &Options) -> (bool, Vec<String>) {
+pub fn renomme(nom: &str, nouveau_nom: &str, indent: &str, opts: &AppOptions) -> (bool, Vec<String>) {
 	let mut lines = Vec::new();
 	if opts.simulate {
 		lines.push(format!("{indent}▶︎ {nom} \x1b[92m\x1b[40m {} \x1b[0m {nouveau_nom}", opts.locale.devient));

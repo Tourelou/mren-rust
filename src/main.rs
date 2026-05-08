@@ -11,7 +11,7 @@ use std::path::Path;
 use regex_lite::Regex;
 
 const PRG_NAME: &str = "mren";
-const VERSION: &str = "2026-02-11";
+const VERSION: &str = "2026-05-08";
 
 fn main() {
 	let mut opts = match parse::parse_args(PRG_NAME, VERSION) {
@@ -51,9 +51,17 @@ fn main() {
 				else { opts.directories.clone() };
 
 	// Détermine re en rapport à l'option ignore_case
-	let re = if opts.ignore_case { Regex::new(&format!("(?i){}", pattern)).unwrap() }
-				else { Regex::new(&pattern).unwrap() };
+	let re_result = if opts.ignore_case { Regex::new(&format!("(?i){}", pattern)) }
+		else { Regex::new(&pattern) };
 
+	let re = match re_result {
+		Ok(r) => r,
+		Err(e) => {
+			// Affiche un message d'erreur lisible par l'utilisateur
+			eprintln!("Err: regex '{}' : {}", pattern, e);
+			std::process::exit(1); // Quitte proprement
+		}
+	};
 	// Lance le traitement pour chaque répertoire
 	for (i, dir) in dirs.iter().enumerate() {
 		let path = Path::new(&dir);
